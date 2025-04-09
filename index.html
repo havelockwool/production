@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Analysis Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .range-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin: 20px 0;
+        }
+        .summary-container {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Warehouse Production Analysis Dashboard</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="production-hours">Production Hours/Day: <span id="production-hours-value" class="range-value">8.5</span></label>
+                <input type="range" id="production-hours" min="4.0" max="18.0" step="0.5" value="8.5">
+            </div>
+            
+            <div class="control-group">
+                <label for="production-days">Production Days/Week: <span id="production-days-value" class="range-value">4.5</span></label>
+                <input type="range" id="production-days" min="3.0" max="5.0" step="0.5" value="4.5">
+            </div>
+            
+            <div class="control-group">
+                <label for="product-dist">16OC Product Ratio: <span id="product-dist-value" class="range-value">0.85</span></label>
+                <input type="range" id="product-dist" min="0.0" max="1.0" step="0.05" value="0.85">
+            </div>
+            
+            <div class="control-group">
+                <label for="hours-span">Hours Variation Span: <span id="hours-span-value" class="range-value">1.5</span></label>
+                <input type="range" id="hours-span" min="0.25" max="4.0" step="0.25" value="1.5">
+            </div>
+            
+            <div class="control-group">
+                <label for="num-points">Data Points: <span id="num-points-value" class="range-value">10</span></label>
+                <input type="range" id="num-points" min="5" max="30" step="1" value="10">
+            </div>
+            
+            <div class="control-group">
+                <label>Trucks/Week Range: <span id="trucks-range-value" class="range-value">2.0 - 7.0</span></label>
+                <input type="range" id="trucks-min" min="1.0" max="20.0" step="0.5" value="2.0">
+                <input type="range" id="trucks-max" min="1.0" max="20.0" step="0.5" value="7.0">
+            </div>
+            
+            <div class="control-group">
+                <label for="avg-bundle-cost">Avg Bundle Cost ($): <span id="avg-bundle-cost-value" class="range-value">60.0</span></label>
+                <input type="range" id="avg-bundle-cost" min="30.0" max="120.0" step="5.0" value="60.0">
+            </div>
+        </div>
+        
+        <div class="button-container">
+            <button id="update-button">Update Analysis</button>
+            <button id="save-pdf-button" style="margin-left: 20px;">Save as PDF</button>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="analysisChart"></canvas>
+        </div>
+        
+        <div class="summary-container">
+            <h2>Production Scenarios Summary</h2>
+            <div id="summary-tables"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
