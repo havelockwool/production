@@ -20,7 +20,7 @@ const PRODUCT_DATA = {
 // Chart reference
 let analysisChart = null;
 
-// Connect sliders to value displays
+// Connect sliders to value displays and update chart on change
 document.querySelectorAll('input[type="range"]').forEach(slider => {
     const valueDisplay = document.getElementById(`${slider.id}-value`);
     if (valueDisplay) {
@@ -49,6 +49,9 @@ document.querySelectorAll('input[type="range"]').forEach(slider => {
                         `${minVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
                 }
             }
+            
+            // Update the chart whenever any slider changes
+            updateWarehouseAnalysis();
         });
     }
 });
@@ -419,35 +422,6 @@ function updateWarehouseAnalysis() {
 
 // Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Update on button click
-    document.getElementById('update-button').addEventListener('click', updateWarehouseAnalysis);
-    
-    // Save as PDF button
-    document.getElementById('save-pdf-button').addEventListener('click', function() {
-        // Get the chart canvas
-        const canvas = document.getElementById('analysisChart');
-        const dataUrl = canvas.toDataURL('image/png');
-        
-        // Create PDF
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('landscape', 'mm', 'a4');
-        
-        // Add title
-        pdf.setFontSize(18);
-        pdf.text('Warehouse Analysis Dashboard', 10, 10);
-        
-        // Add chart
-        pdf.addImage(dataUrl, 'PNG', 10, 20, 277, 150);
-        
-        // Add date
-        const now = new Date();
-        pdf.setFontSize(10);
-        pdf.text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, 10, 190);
-        
-        // Save the PDF
-        pdf.save(`warehouse_analysis_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.pdf`);
-    });
-    
     // Run initial analysis on page load
     updateWarehouseAnalysis();
 });
