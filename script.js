@@ -30,25 +30,25 @@ document.querySelectorAll('input[type="range"]').forEach(slider => {
                 this.id === 'num-points' ? 0 : 1
             );
             
-            // Special case for truck range (two sliders)
-            if (this.id === 'trucks-min' || this.id === 'trucks-max') {
-                const minVal = parseFloat(document.getElementById('trucks-min').value);
-                const maxVal = parseFloat(document.getElementById('trucks-max').value);
+            // // Special case for truck range (two sliders)
+            // if (this.id === 'trucks-min' || this.id === 'trucks-max') {
+            //     const minVal = parseFloat(document.getElementById('trucks-min').value);
+            //     const maxVal = parseFloat(document.getElementById('trucks-max').value);
                 
-                // Keep min <= max
-                if (this.id === 'trucks-min' && minVal > maxVal) {
-                    document.getElementById('trucks-max').value = minVal;
-                    document.getElementById('trucks-range-value').textContent = 
-                        `${minVal.toFixed(1)} - ${minVal.toFixed(1)}`;
-                } else if (this.id === 'trucks-max' && maxVal < minVal) {
-                    document.getElementById('trucks-min').value = maxVal;
-                    document.getElementById('trucks-range-value').textContent = 
-                        `${maxVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
-                } else {
-                    document.getElementById('trucks-range-value').textContent = 
-                        `${minVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
-                }
-            }
+            //     // Keep min <= max
+            //     if (this.id === 'trucks-min' && minVal > maxVal) {
+            //         document.getElementById('trucks-max').value = minVal;
+            //         document.getElementById('trucks-range-value').textContent = 
+            //             `${minVal.toFixed(1)} - ${minVal.toFixed(1)}`;
+            //     } else if (this.id === 'trucks-max' && maxVal < minVal) {
+            //         document.getElementById('trucks-min').value = maxVal;
+            //         document.getElementById('trucks-range-value').textContent = 
+            //             `${maxVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
+            //     } else {
+            //         document.getElementById('trucks-range-value').textContent = 
+            //             `${minVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
+            //     }
+            // }
             
             // Update the chart whenever any slider changes
             updateWarehouseAnalysis();
