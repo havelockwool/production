@@ -17,9 +17,6 @@ const PRODUCT_DATA = {
     '24OC': { pallet_capacity: 12 }   // bundles/pallet
 };
 
-// Chart reference
-let analysisChart = null;
-
 // Connect sliders to value displays and update chart on change
 document.querySelectorAll('input[type="range"]').forEach(slider => {
     const valueDisplay = document.getElementById(`${slider.id}-value`);
@@ -29,26 +26,6 @@ document.querySelectorAll('input[type="range"]').forEach(slider => {
                 this.id === 'product-dist' ? 2 : 
                 this.id === 'num-points' ? 0 : 1
             );
-            
-            // // Special case for truck range (two sliders)
-            // if (this.id === 'trucks-min' || this.id === 'trucks-max') {
-            //     const minVal = parseFloat(document.getElementById('trucks-min').value);
-            //     const maxVal = parseFloat(document.getElementById('trucks-max').value);
-                
-            //     // Keep min <= max
-            //     if (this.id === 'trucks-min' && minVal > maxVal) {
-            //         document.getElementById('trucks-max').value = minVal;
-            //         document.getElementById('trucks-range-value').textContent = 
-            //             `${minVal.toFixed(1)} - ${minVal.toFixed(1)}`;
-            //     } else if (this.id === 'trucks-max' && maxVal < minVal) {
-            //         document.getElementById('trucks-min').value = maxVal;
-            //         document.getElementById('trucks-range-value').textContent = 
-            //             `${maxVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
-            //     } else {
-            //         document.getElementById('trucks-range-value').textContent = 
-            //             `${minVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
-            //     }
-            // }
             
             // Update the chart whenever any slider changes
             updateWarehouseAnalysis();
@@ -178,10 +155,8 @@ function updateWarehouseAnalysis() {
         });
     });
     
-    // Prepare data for chart
-    const chartData = {
-        datasets: []
-    };
+    // Prepare data for Plotly chart
+    const plotlyTraces = [];
     
     // Setup colors - similar to plasma colormap
     const colors = [
@@ -192,7 +167,11 @@ function updateWarehouseAnalysis() {
         'rgba(241, 127, 14, 1)'
     ];
     
-    // Add capacity ratio datasets for each production hour variation
+    // Find min and max y values for the plot to set the range
+    let minY = Infinity;
+    let maxY = -Infinity;
+    
+    // Add capacity ratio traces for each production hour variation
     hoursVariations.forEach((hours, i) => {
         // Filter data for this hours scenario
         const scenarioData = masterData.filter(d => d.productionHours === hours);
@@ -203,56 +182,75 @@ function updateWarehouseAnalysis() {
         // Get the total production for this scenario
         const totalProd = scenarioData[0].totalProductionPallets;
         
-        // Add dataset for capacity ratio
-        chartData.datasets.push({
-            label: `Ratio: ${hours.toFixed(1)} hrs/day | Prod: ${totalProd.toFixed(1)} pallets/wk`,
-            data: scenarioData.map(d => ({
-                x: d.trucksPerWeek,
-                y: d.capacityRatio
-            })),
-            borderColor: colors[i],
-            backgroundColor: colors[i],
-            yAxisID: 'y',
-            pointRadius: 4,
-            tension: 0.1
+        // Extract x and y values
+        const x = scenarioData.map(d => d.trucksPerWeek);
+        const y = scenarioData.map(d => d.capacityRatio);
+        
+        // Update min/max Y values
+        y.forEach(val => {
+            if (val < minY) minY = val;
+            if (val > maxY) maxY = val;
+        });
+        
+        // Add trace for capacity ratio
+        plotlyTraces.push({
+            x: x,
+            y: y,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: `Ratio: ${hours.toFixed(1)} hrs/day | Prod: ${totalProd.toFixed(1)} pallets/wk`,
+            line: {
+                color: colors[i],
+                width: 2
+            },
+            marker: {
+                size: 6,
+                color: colors[i]
+            }
         });
     });
     
     // Add balanced production line
-    const balancedLine = {
-        label: 'Balanced Production (ratio=1)',
-        data: trucksPerWeekValues.map(t => ({
-            x: t,
-            y: 1.0
-        })),
-        borderColor: 'rgba(0, 0, 0, 0.7)',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        borderDash: [5, 5],
-        pointRadius: 0,
-        yAxisID: 'y'
-    };
-    chartData.datasets.push(balancedLine);
+    plotlyTraces.push({
+        x: trucksPerWeekValues,
+        y: Array(trucksPerWeekValues.length).fill(1.0),
+        type: 'scatter',
+        mode: 'lines',
+        name: 'Balanced Production (ratio=1)',
+        line: {
+            color: 'rgba(0, 0, 0, 0.7)',
+            width: 2,
+            dash: 'dash'
+        },
+        marker: {
+            size: 0
+        }
+    });
     
-    // Add warehouse turnover dataset
+    // Add warehouse turnover trace
     // Use the first hours scenario (turnover only depends on outbound rate)
     const firstScenario = masterData.filter(d => d.productionHours === hoursVariations[0]);
-    // Sort data by trucks per week to ensure proper line
     firstScenario.sort((a, b) => a.trucksPerWeek - b.trucksPerWeek);
     
-    const turnoverData = {
-        label: 'Warehouse Turnover (weeks)',
-        data: firstScenario.map(d => ({
-            x: d.trucksPerWeek,
-            y: d.warehouseTurnoverWeeks
-        })),
-        borderColor: 'rgba(0, 0, 0, 0.5)',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        borderDash: [3, 3],
-        pointStyle: 'rect',
-        pointRadius: 3,
-        yAxisID: 'y1'
+    const turnoverTrace = {
+        x: firstScenario.map(d => d.trucksPerWeek),
+        y: firstScenario.map(d => d.warehouseTurnoverWeeks),
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Warehouse Turnover (weeks)',
+        line: {
+            color: 'rgba(0, 0, 0, 0.5)',
+            width: 2,
+            dash: 'dot'
+        },
+        marker: {
+            symbol: 'square',
+            size: 6,
+            color: 'rgba(0, 0, 0, 0.5)'
+        },
+        yaxis: 'y2'
     };
-    chartData.datasets.push(turnoverData);
+    plotlyTraces.push(turnoverTrace);
     
     // Add revenue target vertical lines
     const revenueColors = [
@@ -260,17 +258,6 @@ function updateWarehouseAnalysis() {
         'rgba(204, 51, 0, 1)',
         'rgba(153, 0, 0, 1)'
     ];
-    
-    // Find min and max y values across all datasets to make vertical lines span entire chart
-    let minY = Infinity;
-    let maxY = -Infinity;
-    
-    chartData.datasets.forEach(ds => {
-        ds.data.forEach(point => {
-            if (point.y < minY) minY = point.y;
-            if (point.y > maxY) maxY = point.y;
-        });
-    });
     
     // Add a buffer to max Y
     maxY = Math.max(maxY * 1.1, 5);
@@ -280,140 +267,96 @@ function updateWarehouseAnalysis() {
         const targetPallets = revenueTargetPallets[i];
         const targetTrucks = targetPallets / PALLETS_PER_TRUCK;
         
-        chartData.datasets.push({
-            label: `Revenue: $${target.toLocaleString()}/mo = ${targetPallets.toFixed(1)} pallets/wk`,
-            data: [
-                { x: targetTrucks, y: minY }, 
-                { x: targetTrucks, y: maxY }
-            ],
-            borderColor: revenueColors[i],
-            backgroundColor: revenueColors[i],
-            borderDash: [5, 5],
-            pointRadius: 0,
-            yAxisID: 'y'
+        plotlyTraces.push({
+            x: [targetTrucks, targetTrucks],
+            y: [minY, maxY],
+            type: 'scatter',
+            mode: 'lines',
+            name: `Revenue: $${target.toLocaleString()}/mo = ${targetPallets.toFixed(1)} pallets/wk`,
+            line: {
+                color: revenueColors[i],
+                width: 2,
+                dash: 'dash'
+            },
+            marker: {
+                size: 0
+            }
         });
     });
     
-    // Debug the chart data
-    console.log("Chart data structure:");
-    console.log("Number of datasets:", chartData.datasets.length);
-    chartData.datasets.forEach((ds, i) => {
-        console.log(`Dataset ${i}: ${ds.label}, points: ${ds.data.length}`);
-        if (ds.data.length > 0) {
-            console.log(`  First point x,y: ${ds.data[0].x}, ${ds.data[0].y}`);
-            console.log(`  Last point x,y: ${ds.data[ds.data.length-1].x}, ${ds.data[ds.data.length-1].y}`);
-        }
-    });
-    
-    // Create the chart
-    const ctx = document.getElementById('analysisChart').getContext('2d');
-    
-    // Destroy previous chart if it exists
-    if (analysisChart) {
-        analysisChart.destroy();
-    }
-    
-    // Create new chart
-    analysisChart = new Chart(ctx, {
-        type: 'line',
-        data: chartData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
-            plugins: {
-                title: {
-                    display: true,
-                    text: `Production Metrics Comparison with Varying Production Hours
-(Base: ${baseHours} hrs/day, ${productionDaysPerWeek} days/week, 16OC ratio: ${productDistRatio.toFixed(2)}, Span: ${hoursSpan.toFixed(2)} hrs, Bundle: $${avgBundleCost.toFixed(1)})`,
-                    font: {
-                        size: 16
-                    },
-                    padding: 20
-                },
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 15,
-                        font: {
-                            size: 11
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.dataset.label || '';
-                            const value = context.parsed.y.toFixed(2);
-                            return `${label}: ${value}`;
-                        }
-                    }
+    // Create the Plotly layout
+    const layout = {
+        title: {
+            text: `Production Metrics Comparison with Varying Production Hours<br>(Base: ${baseHours} hrs/day, ${productionDaysPerWeek} days/week, 16OC ratio: ${productDistRatio.toFixed(2)}, Span: ${hoursSpan.toFixed(2)} hrs, Bundle: $${avgBundleCost.toFixed(1)})`,
+            font: {
+                size: 16
+            }
+        },
+        xaxis: {
+            title: {
+                text: 'Trucks Per Week',
+                font: {
+                    size: 14,
+                    color: '#2c3e50'
                 }
             },
-            scales: {
-                x: {
-                    type: 'linear',
-                    title: {
-                        display: true,
-                        text: 'Trucks Per Week',
-                        font: {
-                            weight: 'bold'
-                        }
-                    },
-                    grid: {
-                        display: true,
-                        drawBorder: true
-                    }
-                },
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Production Capacity Ratio',
-                        font: {
-                            weight: 'bold'
-                        }
-                    },
-                    grid: {
-                        display: true,
-                        drawBorder: true,
-                        color: function(context) {
-                            if (context.tick.value === 1) {
-                                return 'rgba(0, 0, 0, 0.5)';
-                            }
-                            return 'rgba(0, 0, 0, 0.1)';
-                        },
-                        lineWidth: function(context) {
-                            if (context.tick.value === 1) {
-                                return 2;
-                            }
-                            return 1;
-                        }
-                    }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: {
-                        display: true,
-                        text: 'Warehouse Turnover (weeks)',
-                        font: {
-                            weight: 'bold'
-                        }
-                    },
-                    grid: {
-                        display: false
-                    }
+            gridcolor: 'rgba(0, 0, 0, 0.1)'
+        },
+        yaxis: {
+            title: {
+                text: 'Production Capacity Ratio',
+                font: {
+                    size: 14,
+                    color: '#2c3e50'
+                }
+            },
+            range: [minY, maxY],
+            gridcolor: 'rgba(0, 0, 0, 0.1)'
+        },
+        yaxis2: {
+            title: {
+                text: 'Warehouse Turnover (weeks)',
+                font: {
+                    size: 14,
+                    color: '#2c3e50'
+                }
+            },
+            overlaying: 'y',
+            side: 'right',
+            showgrid: false
+        },
+        legend: {
+            orientation: 'h',
+            y: -0.15
+        },
+        shapes: [
+            // Add horizontal line at y=1 for balance point
+            {
+                type: 'line',
+                xref: 'paper',
+                x0: 0,
+                x1: 1,
+                y0: 1,
+                y1: 1,
+                line: {
+                    color: 'rgba(0, 0, 0, 0.5)',
+                    width: 2,
+                    dash: 'dot'
                 }
             }
+        ],
+        hovermode: 'closest',
+        height: 600,
+        margin: {
+            l: 60,
+            r: 60,
+            t: 80,
+            b: 100
         }
-    });
+    };
+    
+    // Create the plot
+    Plotly.newPlot('analysisChart', plotlyTraces, layout);
     
     // Create summary tables
     createSummaryTables(masterData, hoursVariations, baseHours, productionDaysPerWeek, 
