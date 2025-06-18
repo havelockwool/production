@@ -1,3 +1,20 @@
+//Additional Notes from Pete's spreadsheet
+// - Avg. ordrer size: 3.75 pallets
+// - order per truck: 7
+// April 2025 had 63 orders
+
+//SO,
+// 150 orders/month
+// 563 pallets/month
+// 22 trucks/month
+//5.4 trucks/week
+//// requires running 7 hrs/day, 4.5 days/week
+// 100 orders/month
+// 3.6 trucks/week
+// requires running 5.5 hrs/day, 4 days/week
+
+
+
 // Fixed parameters
 const WAREHOUSE_PALLETS = 700;  // warehouse capacity
 const PALLETS_PER_TRUCK = 26;   // truck_capacity
