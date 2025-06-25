@@ -18,9 +18,10 @@
 // Fixed parameters
 const WAREHOUSE_PALLETS = 700;  // warehouse capacity
 const PALLETS_PER_TRUCK = 26;   // truck_capacity
-const AVG_PALLETS_PER_ORDER = 3.5; // Each order is 3.5 pallets on average
 const PACKAGING_MAX_SEC_PER_BUNDLE = 30;  // packaging_speed_maximum_seconds (recipe)
 const PRODUCTION_REDUCE_SPEED_FACTOR = 0.85;  // buffer factor
+const PRODUCT_DIST_RATIO = 0.7; // 16OC Product Ratio
+const PRODUCT_DIST_PERCENT = PRODUCT_DIST_RATIO * 100; // 16OC Product Ratio in percent
 const NUM_POINTS = 20; // Number of data points for chart lines
 const HOURS_VARIATION_SPAN = 1.5; // The span for production hours variations
 
@@ -41,11 +42,16 @@ const PRODUCT_DATA = {
 document.querySelectorAll('input[type="range"]').forEach(slider => {
     const valueDisplay = document.getElementById(`${slider.id}-value`);
     if (valueDisplay) {
-        slider.addEventListener('input', function() {
-            valueDisplay.textContent = parseFloat(this.value).toFixed(
-                this.id === 'product-dist' ? 2 : 1
-            );
-            
+        const updateValue = () => {
+            const step = parseFloat(slider.step);
+            // Determine decimals from step value (e.g., 0.1 -> 1, 5 -> 0)
+            const decimals = String(step).includes('.') ? String(step).split('.')[1].length : 0;
+            valueDisplay.textContent = parseFloat(slider.value).toFixed(decimals);
+        };
+        // Set initial value on load
+        updateValue();
+        slider.addEventListener('input', () => {
+            updateValue();
             // Update the chart whenever any slider changes
             updateWarehouseAnalysis();
         });
@@ -97,15 +103,15 @@ function updateWarehouseAnalysis() {
     // Get values from sliders
     const productionHrsPerDay = parseFloat(document.getElementById('production-hours').value);
     const productionDaysPerWeek = parseFloat(document.getElementById('production-days').value);
-    const productDistRatio = parseFloat(document.getElementById('product-dist').value);
     const ordersMin = parseFloat(document.getElementById('orders-min').value);
     const ordersMax = parseFloat(document.getElementById('orders-max').value);
     const avgBundleCost = parseFloat(document.getElementById('avg-bundle-cost').value);
+    const avgPalletsPerOrder = parseFloat(document.getElementById('avg-pallets-per-order').value);
     
     // Create product distribution data
     const productDist = {
-        '16OC': productDistRatio,
-        '24OC': 1 - productDistRatio
+        '16OC': PRODUCT_DIST_RATIO,
+        '24OC': 1 - PRODUCT_DIST_RATIO
     };
     
     // Generate production hours variations
@@ -157,7 +163,7 @@ function updateWarehouseAnalysis() {
         
         ordersPerWeekValues.forEach(orders => {
             // Calculate outbound pallets per week
-            const outboundPalletsPerWeek = orders * AVG_PALLETS_PER_ORDER;
+            const outboundPalletsPerWeek = orders * avgPalletsPerOrder;
             
             // Calculate capacity ratio and warehouse turnover
             const capacityRatio = totalProductionPallets / outboundPalletsPerWeek;
@@ -201,7 +207,7 @@ function updateWarehouseAnalysis() {
         
         // Get the total production for this scenario
         const totalProd = scenarioData[0].totalProductionPallets;
-        const totalProdInOrders = totalProd / AVG_PALLETS_PER_ORDER;
+        const totalProdInOrders = totalProd / avgPalletsPerOrder;
         
         // Extract x and y values
         const x = scenarioData.map(d => d.ordersPerWeek);
@@ -288,7 +294,7 @@ function updateWarehouseAnalysis() {
     
     REVENUE_TARGETS.forEach((target, i) => {
         const targetPallets = revenueTargetPallets[i];
-        const targetOrders = targetPallets / AVG_PALLETS_PER_ORDER;
+        const targetOrders = targetPallets / avgPalletsPerOrder;
         
         plotlyTraces.push({
             x: [targetOrders, targetOrders],
@@ -310,9 +316,8 @@ function updateWarehouseAnalysis() {
     // Create the Plotly layout
     const layout = {
         title: {
-            //text: `Production Metrics Comparison with Varying Production Hours<br>(Base: ${baseHours} hrs/day, ${productionDaysPerWeek} days/week, 16OC ratio: ${productDistRatio.toFixed(2)}, Span: ${HOURS_VARIATION_SPAN.toFixed(2)} hrs, Bundle: $${avgBundleCost.toFixed(1)}, ${AVG_PALLETS_PER_ORDER.toFixed(1)} pallets/order)`,
             text: `<b>Production Metrics Comparison with Varying Production Hours</b><br>
-            (Avg. order size: ${AVG_PALLETS_PER_ORDER.toFixed(1)} pallets)`,
+            (16OC Ratio: ${PRODUCT_DIST_PERCENT.toFixed(0)}%)`,
             
             font: {
                 size: 16
@@ -386,7 +391,7 @@ function updateWarehouseAnalysis() {
     
     // Create summary tables
     createSummaryTables(masterData, hoursVariations, baseHours, productionDaysPerWeek, 
-                       palletCost, revenueTargetPallets, avgBundleCost);
+                       palletCost, revenueTargetPallets, avgBundleCost, avgPalletsPerOrder);
 }
 
 // Initialize dashboard when page loads
@@ -397,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Function to create summary tables
 function createSummaryTables(masterData, hoursVariations, baseHours, productionDaysPerWeek, 
-                            palletCost, revenueTargetPallets, avgBundleCost) {
+                            palletCost, revenueTargetPallets, avgBundleCost, avgPalletsPerOrder) {
     const summaryContainer = document.getElementById('summary-tables');
     summaryContainer.innerHTML = '';
     
@@ -442,7 +447,7 @@ function createSummaryTables(masterData, hoursVariations, baseHours, productionD
                     1.0
                 );
                 
-                balancedPallets = balancedOrder * AVG_PALLETS_PER_ORDER;
+                balancedPallets = balancedOrder * avgPalletsPerOrder;
                 balancedRevenue = balancedPallets * palletCost * 4; // Monthly revenue
             }
         }
@@ -491,7 +496,7 @@ function createSummaryTables(masterData, hoursVariations, baseHours, productionD
     
     const revenueTargetDivs = REVENUE_TARGETS.map((target, i) => {
         const targetPallets = revenueTargetPallets[i];
-        const targetOrders = targetPallets / AVG_PALLETS_PER_ORDER;
+        const targetOrders = targetPallets / avgPalletsPerOrder;
         const targetOrdersMonth = targetOrders * 4; // Monthly orders
         
         // Analysis for each production scenario
@@ -503,7 +508,7 @@ function createSummaryTables(masterData, hoursVariations, baseHours, productionD
             const totalProd = scenarioData[0].totalProductionPallets;
             const capacityRatio = totalProd / targetPallets;
             const diff = totalProd - targetPallets;
-            const diffOrders = diff / AVG_PALLETS_PER_ORDER;
+            const diffOrders = diff / avgPalletsPerOrder;
             
             targetAnalysisList.push({
                 productionHours: hours,
