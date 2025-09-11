@@ -24,6 +24,7 @@ const PRODUCT_DIST_RATIO = 0.7; // 16OC Product Ratio
 const PRODUCT_DIST_PERCENT = PRODUCT_DIST_RATIO * 100; // 16OC Product Ratio in percent
 const NUM_POINTS = 20; // Number of data points for chart lines
 const HOURS_VARIATION_SPAN = 1.5; // The span for production hours variations
+const KG_PER_PALLET = 100; // kg of wool per pallet
 
 // Calculate packaging speed
 const PACKAGING_MAX_BUNDLES_PER_HR = (60 / PACKAGING_MAX_SEC_PER_BUNDLE) * 60;
@@ -469,6 +470,7 @@ function createSummaryTables(masterData, hoursVariations, baseHours, productionD
                 <th>Balanced Monthly Revenue</th>
                 <th>Balanced Orders/Week</th>
                 <th>Balanced Pallets/Week</th>
+                <th>KG's Wool/Week</th>
             </tr>
         </thead>
         <tbody>
@@ -476,12 +478,14 @@ function createSummaryTables(masterData, hoursVariations, baseHours, productionD
                 // const productionHoursPerWeek = point.productionHours * productionDaysPerWeek;
                 // const totalBundlesPerWeek = PACKAGING_ACTUAL_BUNDLES_PER_HR * productionHoursPerWeek;
                 // const monthlyRevenue = totalBundlesPerWeek * avgBundleCost * 4; // 4 weeks per month
+                const kgWool = point.balancedPallets !== null ? point.balancedPallets * KG_PER_PALLET : null;
                 return `
                 <tr>
                     <td>${point.productionHours.toFixed(1)}</td>
                     <td>${point.balancedRevenues !== null ? '$' + point.balancedRevenues.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A'}</td>
                     <td>${point.balancedOrders !== null ? point.balancedOrders.toFixed(2) : 'N/A'}</td>
                     <td>${point.balancedPallets !== null ? point.balancedPallets.toFixed(2) : 'N/A'}</td>
+                    <td>${kgWool !== null ? kgWool.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A'}</td>
                 </tr>
             `}).join('')}
         </tbody>
