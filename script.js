@@ -23,7 +23,7 @@ const PRODUCTION_REDUCE_SPEED_FACTOR = 0.75;  // buffer factor
 const PRODUCT_DIST_RATIO = 0.7; // 16OC Product Ratio
 const PRODUCT_DIST_PERCENT = PRODUCT_DIST_RATIO * 100; // 16OC Product Ratio in percent
 const NUM_POINTS = 20; // Number of data points for chart lines
-const HOURS_VARIATION_SPAN = 1.5; // The span for production hours variations
+const HOURS_VARIATION_SPAN = 2.0; // The span for production hours variations
 const KG_PER_PALLET = 100; // kg of wool per pallet
 
 // Calculate packaging speed
