@@ -16,14 +16,14 @@
 
 
 // Fixed parameters
-const WAREHOUSE_PALLETS = 700;  // warehouse capacity
+const WAREHOUSE_PALLETS = 600;  // warehouse capacity
 const PALLETS_PER_TRUCK = 26;   // truck_capacity
 const PACKAGING_MAX_SEC_PER_BUNDLE = 30;  // packaging_speed_maximum_seconds (recipe)
-const PRODUCTION_REDUCE_SPEED_FACTOR = 0.8;  // buffer factor
+const PRODUCTION_REDUCE_SPEED_FACTOR = 0.8;  // buffer factor - needed b/c 30s is fast and a little extra time is needed for alarms
 const PRODUCT_DIST_RATIO = 0.7; // 16OC Product Ratio
 const PRODUCT_DIST_PERCENT = PRODUCT_DIST_RATIO * 100; // 16OC Product Ratio in percent
 const NUM_POINTS = 20; // Number of data points for chart lines
-const HOURS_VARIATION_SPAN = 2.0; // The span for production hours variations
+const HOURS_VARIATION_SPAN = 1.5; // The span for production hours variations
 const KG_PER_PALLET = 100; // kg of wool per pallet
 
 // Calculate packaging speed
@@ -117,14 +117,22 @@ function updateWarehouseAnalysis() {
     
     // Generate production hours variations
     const baseHours = productionHrsPerDay;
+    // let hoursVariations = [
+    //     baseHours - 2 * HOURS_VARIATION_SPAN,
+    //     baseHours - HOURS_VARIATION_SPAN,
+    //     baseHours,
+    //     baseHours + HOURS_VARIATION_SPAN,
+    //     baseHours + 2 * HOURS_VARIATION_SPAN
+    // ];
+
     let hoursVariations = [
-        baseHours - 2 * HOURS_VARIATION_SPAN,
-        baseHours - HOURS_VARIATION_SPAN,
-        baseHours,
-        baseHours + HOURS_VARIATION_SPAN,
-        baseHours + 2 * HOURS_VARIATION_SPAN
+        baseHours + HOURS_VARIATION_SPAN * 0,
+        baseHours + HOURS_VARIATION_SPAN * 1,
+        baseHours + HOURS_VARIATION_SPAN * 2,
+        baseHours + HOURS_VARIATION_SPAN * 3,
+        baseHours + HOURS_VARIATION_SPAN * 4,
     ];
-    
+
     // Ensure no negative hours
     hoursVariations = hoursVariations.map(h => Math.max(0.1, h));
     
@@ -161,6 +169,7 @@ function updateWarehouseAnalysis() {
         
         // Total production capacity
         const totalProductionPallets = max16ocPallets + max24ocPallets;
+        
         
         ordersPerWeekValues.forEach(orders => {
             // Calculate outbound pallets per week
@@ -478,14 +487,14 @@ function createSummaryTables(masterData, hoursVariations, baseHours, productionD
                 // const productionHoursPerWeek = point.productionHours * productionDaysPerWeek;
                 // const totalBundlesPerWeek = PACKAGING_ACTUAL_BUNDLES_PER_HR * productionHoursPerWeek;
                 // const monthlyRevenue = totalBundlesPerWeek * avgBundleCost * 4; // 4 weeks per month
-                const kgWool = point.balancedPallets !== null ? point.balancedPallets * KG_PER_PALLET : null;
+                // const kgWool = point.balancedPallets * KG_PER_PALLET;
                 return `
                 <tr>
                     <td>${point.productionHours.toFixed(1)}</td>
-                    <td>${point.balancedRevenues !== null ? '$' + point.balancedRevenues.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A'}</td>
-                    <td>${point.balancedOrders !== null ? point.balancedOrders.toFixed(2) : 'N/A'}</td>
-                    <td>${point.balancedPallets !== null ? point.balancedPallets.toFixed(2) : 'N/A'}</td>
-                    <td>${kgWool !== null ? kgWool.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : 'N/A'}</td>
+                    <td>$${point.balancedRevenues.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                    <td>${point.balancedOrders.toFixed(2)}</td>
+                    <td>${point.balancedPallets.toFixed(2)}</td>
+                    <td>${(point.balancedPallets * KG_PER_PALLET).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                 </tr>
             `}).join('')}
         </tbody>
