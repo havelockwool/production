@@ -16,10 +16,10 @@
 
 
 // Fixed parameters
-const WAREHOUSE_PALLETS = 700;  // warehouse capacity
+const WAREHOUSE_PALLETS = 600;  // warehouse capacity
 const PALLETS_PER_TRUCK = 26;   // truck_capacity
 const PACKAGING_MAX_SEC_PER_BUNDLE = 30;  // packaging_speed_maximum_seconds (recipe)
-const PRODUCTION_REDUCE_SPEED_FACTOR = 0.85;  // buffer factor
+const PRODUCTION_REDUCE_SPEED_FACTOR = 0.8;  // buffer factor - needed b/c 30s is fast and a little extra time is needed for alarms
 const PRODUCT_DIST_RATIO = 0.7; // 16OC Product Ratio
 const PRODUCT_DIST_PERCENT = PRODUCT_DIST_RATIO * 100; // 16OC Product Ratio in percent
 const NUM_POINTS = 20; // Number of data points for chart lines
