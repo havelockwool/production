@@ -100,7 +100,7 @@ function interpolate(xValues, yValues, xNew) {
 }
 
 // Main calculation function
-function updateWarehouseAnalysis() {
+async function updateWarehouseAnalysis() {
     // Get values from sliders
     const productionHrsPerDay = parseFloat(document.getElementById('production-hours').value);
     const productionDaysPerWeek = parseFloat(document.getElementById('production-days').value);
@@ -108,88 +108,36 @@ function updateWarehouseAnalysis() {
     const ordersMax = parseFloat(document.getElementById('orders-max').value);
     const avgBundleCost = parseFloat(document.getElementById('avg-bundle-cost').value);
     const avgPalletsPerOrder = parseFloat(document.getElementById('avg-pallets-per-order').value);
-    
-    // Create product distribution data
-    const productDist = {
-        '16OC': PRODUCT_DIST_RATIO,
-        '24OC': 1 - PRODUCT_DIST_RATIO
-    };
-    
-    // Generate production hours variations
-    const baseHours = productionHrsPerDay;
-    // let hoursVariations = [
-    //     baseHours - 2 * HOURS_VARIATION_SPAN,
-    //     baseHours - HOURS_VARIATION_SPAN,
-    //     baseHours,
-    //     baseHours + HOURS_VARIATION_SPAN,
-    //     baseHours + 2 * HOURS_VARIATION_SPAN
-    // ];
 
-    let hoursVariations = [
-        baseHours + HOURS_VARIATION_SPAN * 0,
-        baseHours + HOURS_VARIATION_SPAN * 1,
-        baseHours + HOURS_VARIATION_SPAN * 2,
-        baseHours + HOURS_VARIATION_SPAN * 3,
-        baseHours + HOURS_VARIATION_SPAN * 4,
-    ];
-
-    // Ensure no negative hours
-    hoursVariations = hoursVariations.map(h => Math.max(0.1, h));
-    
-    // Generate order range values
-    const ordersPerWeekValues = linspace(ordersMin, ordersMax, NUM_POINTS);
-    console.log("Order values:", ordersPerWeekValues);
-    
-    // Calculate costs for each pallet
-    const palletCost = avgBundleCost * PRODUCT_DATA['16OC'].pallet_capacity;
-    console.log("palletCost", palletCost);
-
-
-    // Calculate production targets in pallets per week (Monthly revenue to weekly pallets)
-    const revenueTargetPallets = REVENUE_TARGETS.map(target => target / palletCost / 4);
-    console.log("revenueTargetPallets", revenueTargetPallets);
-
-    // Create master data structure with all combinations
-    const masterData = [];
-    
-    // Debug information
-    console.log("Hours variations:", hoursVariations);
-    console.log("Orders per week values:", ordersPerWeekValues);
-    
-    hoursVariations.forEach(hours => {
-        // Calculate production hours per week
-        const productionHoursPerWeek = hours * productionDaysPerWeek;
-        
-        // Calculate max production capacity for each product type
-        const max16ocPallets = (PACKAGING_ACTUAL_BUNDLES_PER_HR * productionHoursPerWeek * 
-                                productDist['16OC']) / PRODUCT_DATA['16OC'].pallet_capacity;
-                                
-        const max24ocPallets = (PACKAGING_ACTUAL_BUNDLES_PER_HR * productionHoursPerWeek * 
-                                productDist['24OC']) / PRODUCT_DATA['24OC'].pallet_capacity;
-        
-        // Total production capacity
-        const totalProductionPallets = max16ocPallets + max24ocPallets;
-        
-        
-        ordersPerWeekValues.forEach(orders => {
-            // Calculate outbound pallets per week
-            const outboundPalletsPerWeek = orders * avgPalletsPerOrder;
-            
-            // Calculate capacity ratio and warehouse turnover
-            const capacityRatio = totalProductionPallets / outboundPalletsPerWeek;
-            const warehouseTurnoverWeeks = WAREHOUSE_PALLETS / outboundPalletsPerWeek;
-            
-            masterData.push({
-                productionHours: hours,
-                ordersPerWeek: orders,
-                productionHoursPerWeek: productionHoursPerWeek,
-                outboundPalletsPerWeek: outboundPalletsPerWeek,
-                totalProductionPallets: totalProductionPallets,
-                capacityRatio: capacityRatio,
-                warehouseTurnoverWeeks: warehouseTurnoverWeeks
-            });
+    // Call Python serverless function
+    try {
+        const response = await fetch('/api/calculate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                productionHrsPerDay,
+                productionDaysPerWeek,
+                ordersMin,
+                ordersMax,
+                avgBundleCost,
+                avgPalletsPerOrder
+            })
         });
-    });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+
+        const masterData = data.masterData;
+        const hoursVariations = data.hoursVariations;
+        const ordersPerWeekValues = data.ordersPerWeekValues;
+        const palletCost = data.palletCost;
+        const revenueTargetPallets = data.revenueTargetPallets;
+        const productDistPercent = data.constants.productDistPercent;
     
     // Prepare data for Plotly chart
     const plotlyTraces = [];
@@ -327,7 +275,7 @@ function updateWarehouseAnalysis() {
     const layout = {
         title: {
             text: `<b>Production Metrics Comparison with Varying Production Hours</b><br>
-            (16OC Ratio: ${PRODUCT_DIST_PERCENT.toFixed(0)}%)`,
+            (16OC Ratio: ${productDistPercent.toFixed(0)}%)`,
             
             font: {
                 size: 16
@@ -398,10 +346,14 @@ function updateWarehouseAnalysis() {
     
     // Create the plot
     Plotly.newPlot('analysisChart', plotlyTraces, layout);
-    
-    // Create summary tables
-    createSummaryTables(masterData, hoursVariations, baseHours, productionDaysPerWeek, 
-                       palletCost, revenueTargetPallets, avgBundleCost, avgPalletsPerOrder);
+
+    // Create summary tables using server data
+    createSummaryTablesFromAPI(data, avgBundleCost, avgPalletsPerOrder);
+
+    } catch (error) {
+        console.error('Error updating analysis:', error);
+        document.getElementById('analysisChart').innerHTML = '<p style="color: red; text-align: center;">Error loading analysis. Please try again.</p>';
+    }
 }
 
 // Initialize dashboard when page loads
@@ -410,66 +362,14 @@ document.addEventListener('DOMContentLoaded', function() {
     updateWarehouseAnalysis();
 });
 
-// Function to create summary tables
-function createSummaryTables(masterData, hoursVariations, baseHours, productionDaysPerWeek, 
-                            palletCost, revenueTargetPallets, avgBundleCost, avgPalletsPerOrder) {
+// Function to create summary tables from API data
+function createSummaryTablesFromAPI(data, avgBundleCost, avgPalletsPerOrder) {
     const summaryContainer = document.getElementById('summary-tables');
-    summaryContainer.innerHTML = '';
-    
-    // 1. Balanced Points Summary Table
-    const balancedPointsList = [];
-    
-    hoursVariations.forEach(hours => {
-        // Filter data for this scenario
-        const scenarioData = masterData.filter(d => d.productionHours === hours);
-        
-        // Sort by capacity ratio for proper interpolation
-        scenarioData.sort((a, b) => a.capacityRatio - b.capacityRatio);
-        
-        // Get total production
-        const totalProd = scenarioData[0].totalProductionPallets;
-        
-        // Find balanced point if possible
-        let balancedOrder = null;
-        let balancedPallets = null;
-        let balancedRevenue = null;
-        
-        // Check if balanced point is within range
-        const minRatio = Math.min(...scenarioData.map(d => d.capacityRatio));
-        const maxRatio = Math.max(...scenarioData.map(d => d.capacityRatio));
-        
-        if (minRatio <= 1.0 && maxRatio >= 1.0) {
-            // Find points to interpolate between
-            let lowerIndex = 0;
-            while (lowerIndex < scenarioData.length - 1 && 
-                   scenarioData[lowerIndex].capacityRatio < 1.0) {
-                lowerIndex++;
-            }
-            
-            if (lowerIndex > 0) {
-                const lowerPoint = scenarioData[lowerIndex - 1];
-                const upperPoint = scenarioData[lowerIndex];
-                
-                // Interpolate to find x (trucks) where y (ratio) = 1.0
-                balancedOrder = interpolate(
-                    [lowerPoint.capacityRatio, upperPoint.capacityRatio],
-                    [lowerPoint.ordersPerWeek, upperPoint.ordersPerWeek],
-                    1.0
-                );
-                
-                balancedPallets = balancedOrder * avgPalletsPerOrder;
-                balancedRevenue = balancedPallets * palletCost * 4; // Monthly revenue
-            }
-        }
-        
-        balancedPointsList.push({
-            productionHours: hours,
-            balancedRevenues: balancedRevenue,
-            balancedOrders: balancedOrder,
-            balancedPallets: balancedPallets
-        });
-    });
-    
+    const balancedPoints = data.balancedPoints;
+    const revenueAnalysis = data.revenueAnalysis;
+    const palletCost = data.palletCost;
+    const kgPerPallet = data.constants.kgPerPallet;
+
     // Create balanced points table
     const balancedTable = document.createElement('table');
     balancedTable.innerHTML = `
@@ -483,59 +383,42 @@ function createSummaryTables(masterData, hoursVariations, baseHours, productionD
             </tr>
         </thead>
         <tbody>
-            ${balancedPointsList.map(point => {
-                // const productionHoursPerWeek = point.productionHours * productionDaysPerWeek;
-                // const totalBundlesPerWeek = PACKAGING_ACTUAL_BUNDLES_PER_HR * productionHoursPerWeek;
-                // const monthlyRevenue = totalBundlesPerWeek * avgBundleCost * 4; // 4 weeks per month
-                // const kgWool = point.balancedPallets * KG_PER_PALLET;
+            ${balancedPoints.map(point => {
+                const revenue = point.balancedRevenue !== null ?
+                    `$${point.balancedRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` :
+                    'N/A';
+                const orders = point.balancedOrders !== null ? point.balancedOrders.toFixed(2) : 'N/A';
+                const pallets = point.balancedPallets !== null ? point.balancedPallets.toFixed(2) : 'N/A';
+                const kgWool = point.balancedPallets !== null ?
+                    (point.balancedPallets * kgPerPallet).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }) :
+                    'N/A';
                 return `
                 <tr>
                     <td>${point.productionHours.toFixed(1)}</td>
-                    <td>$${point.balancedRevenues.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
-                    <td>${point.balancedOrders.toFixed(2)}</td>
-                    <td>${point.balancedPallets.toFixed(2)}</td>
-                    <td>${(point.balancedPallets * KG_PER_PALLET).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                    <td>${revenue}</td>
+                    <td>${orders}</td>
+                    <td>${pallets}</td>
+                    <td>${kgWool}</td>
                 </tr>
             `}).join('')}
         </tbody>
     `;
-    
-    // 2. Revenue Target Analysis
+
+    // Revenue Target Analysis
     const revenueAnalysisHtml = `
         <h3>Revenue Target Analysis</h3>
         <p>Bundle Cost: $${avgBundleCost.toFixed(2)} per bundle</p>
         <p>Pallet Cost: $${palletCost.toFixed(2)} (based on ${PRODUCT_DATA['16OC'].pallet_capacity} bundles per pallet)</p>
     `;
-    
-    const revenueTargetDivs = REVENUE_TARGETS.map((target, i) => {
-        const targetPallets = revenueTargetPallets[i];
-        const targetOrders = targetPallets / avgPalletsPerOrder;
-        const targetOrdersMonth = targetOrders * 4; // Monthly orders
-        
-        // Analysis for each production scenario
-        const targetAnalysisList = [];
-        
-        hoursVariations.forEach(hours => {
-            // Filter for this scenario
-            const scenarioData = masterData.filter(d => d.productionHours === hours);
-            const totalProd = scenarioData[0].totalProductionPallets;
-            const capacityRatio = totalProd / targetPallets;
-            const diff = totalProd - targetPallets;
-            const diffOrders = diff / avgPalletsPerOrder;
-            
-            targetAnalysisList.push({
-                productionHours: hours,
-                totalProduction: totalProd,
-                capacityRatioToTarget: capacityRatio,
-                productionVsTarget: `${diff >= 0 ? '+' : ''}${diff.toFixed(1)} pallets/wk<br>(${(diffOrders >= 0 ? '+' : '')}${diffOrders.toFixed(1)} orders/wk)`
-            });
-        });
-        
+
+    const revenueTargetDivs = revenueAnalysis.map(targetData => {
+        const targetOrdersMonth = targetData.targetOrders * 4;
+
         return `
             <div class="revenue-target">
-                <h4>Monthly Revenue Target: $${target.toLocaleString()}</h4>
-                <p>Weekly Pallet Target: ${targetPallets.toFixed(1)} pallets per week = ${targetOrders.toFixed(1)} orders per week = ${targetOrdersMonth.toFixed(1)} orders per month</p>
-                
+                <h4>Monthly Revenue Target: $${targetData.target.toLocaleString()}</h4>
+                <p>Weekly Pallet Target: ${targetData.targetPallets.toFixed(1)} pallets per week = ${targetData.targetOrders.toFixed(1)} orders per week = ${targetOrdersMonth.toFixed(1)} orders per month</p>
+
                 <table>
                     <thead>
                         <tr>
@@ -546,16 +429,14 @@ function createSummaryTables(masterData, hoursVariations, baseHours, productionD
                         </tr>
                     </thead>
                     <tbody>
-                        ${targetAnalysisList.map(analysis => {
-                            const productionHoursPerWeek = analysis.productionHours * productionDaysPerWeek;
-                            const totalBundlesPerWeek = PACKAGING_ACTUAL_BUNDLES_PER_HR * productionHoursPerWeek;
-                            const monthlyRevenue = totalBundlesPerWeek * avgBundleCost * 4;
+                        ${targetData.analysis.map(analysis => {
+                            const productionVsTarget = `${analysis.diffPallets >= 0 ? '+' : ''}${analysis.diffPallets.toFixed(1)} pallets/wk<br>(${analysis.diffOrders >= 0 ? '+' : ''}${analysis.diffOrders.toFixed(1)} orders/wk)`;
                             return `
                             <tr>
                                 <td>${analysis.productionHours.toFixed(1)}</td>
-                                <td>$${monthlyRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                                <td>$${analysis.monthlyRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                                 <td>${analysis.capacityRatioToTarget.toFixed(2)}</td>
-                                <td>${analysis.productionVsTarget}</td>
+                                <td>${productionVsTarget}</td>
                             </tr>
                         `}).join('')}
                     </tbody>
@@ -563,7 +444,7 @@ function createSummaryTables(masterData, hoursVariations, baseHours, productionD
             </div>
         `;
     }).join('');
-    
+
     // Add all the summary content
     summaryContainer.innerHTML = `
         <h3>Production Scenarios Summary</h3>
