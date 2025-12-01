@@ -6,7 +6,7 @@ body {
 }
 .container {
     max-width: 1200px;
-    margin: 0 auto;
+    margin: 0 290px 0 auto;
     background-color: white;
     padding: 20px;
     border-radius: 8px;
@@ -18,10 +18,20 @@ h1 {
     margin-bottom: 30px;
 }
 .controls {
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    width: 250px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
     gap: 15px;
-    margin-bottom: 5px;
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
 }
 .control-group {
     margin-bottom: 1px;
@@ -92,4 +102,20 @@ button:hover {
 }
 .plotly-graph-div {
     margin: 0 auto;
+}
+
+/* Mobile responsiveness - revert to original layout on smaller screens */
+@media (max-width: 1000px) {
+    .controls {
+        position: static;
+        width: auto;
+        max-height: none;
+        overflow-y: visible;
+        grid-template-columns: repeat(2, 1fr);
+        margin-bottom: 20px;
+    }
+
+    .container {
+        margin: 0 auto;
+    }
 }
