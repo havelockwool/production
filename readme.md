@@ -1,4 +1,2 @@
-#Changes
-- make changes in the fork
-- then merge fork into main
-- Dont make changes in main b/c it gets confusing what is what
+# Changes
+- ideally make changes in the fork the push to main. but fight now main is where changes are made.
