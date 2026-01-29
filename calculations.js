@@ -309,7 +309,7 @@ function updateWarehouseAnalysis() {
         margin: {
             l: 60,
             r: 60,
-            t: 50,
+            t: 100,
             b: 100
         }
     };

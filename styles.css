@@ -54,7 +54,7 @@ input[type="range"] {
 .chart-container {
     position: relative;
     height: 600px;
-    margin: 20px 0;
+    margin: 10px 0;
     width: 100%;
 }
 .summary-container {
