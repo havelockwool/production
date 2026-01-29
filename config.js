@@ -12,7 +12,7 @@ const KG_PER_PALLET = 100; // kg of wool per pallet
 
 // production speed correction factors
 const PLASTIC_CHANGEOVER_SPEED_FACTOR = 0.05; // includes changeover time for plastic
-const MACHINE_DOWNTIME_SPEED_FACTOR = 0.2;  // includes breaks, jams, maintenance, sharpener adjustment
+const MACHINE_DOWNTIME_SPEED_FACTOR = 0.15;  // includes breaks, jams, maintenance, sharpener adjustment
 
 // Calculate packaging speed
 const PRODUCTION_REDUCE_SPEED_FACTOR = 1 - PLASTIC_CHANGEOVER_SPEED_FACTOR - MACHINE_DOWNTIME_SPEED_FACTOR;  
