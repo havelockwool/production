@@ -1,2 +1,0 @@
-# No external dependencies required for this project
-# All calculations use Python standard library
