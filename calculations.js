@@ -243,7 +243,8 @@ function updateWarehouseAnalysis() {
     const layout = {
         title: {
             text: `<b>Production Metrics Comparison with Varying Production Hours</b><br>
-            (16OC Ratio: ${PRODUCT_DIST_PERCENT.toFixed(0)}%)`,
+            (16OC Ratio: ${PRODUCT_DIST_PERCENT.toFixed(0)}%)<br>
+            (Production Speed Factor: ${PRODUCTION_REDUCE_SPEED_FACTOR.toFixed(2)})`,
 
             font: {
                 size: 16
