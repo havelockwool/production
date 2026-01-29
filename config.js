@@ -4,7 +4,7 @@
 const WAREHOUSE_PALLETS = 600;  // warehouse capacity
 const PALLETS_PER_TRUCK = 26;   // truck_capacity
 const PACKAGING_MAX_SEC_PER_BUNDLE = 35;  // packaging_speed_maximum_seconds (30s + 5s buffer needed between packs otherwise packaging gets overwhelmed ))
-const PRODUCT_DIST_RATIO = 0.85; // 16OC Product Ratio
+// const PRODUCT_DIST_RATIO = 0.85; // 16OC Product Ratio
 // const PRODUCT_DIST_PERCENT = PRODUCT_DIST_RATIO * 100; // 16OC Product Ratio in percent
 const NUM_POINTS = 25; // Number of data points for chart lines
 const HOURS_VARIATION_SPAN = 1.5; // The span for production hours variations

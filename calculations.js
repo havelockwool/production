@@ -49,11 +49,12 @@ function updateWarehouseAnalysis() {
     const ordersMax = parseFloat(document.getElementById('orders-max').value);
     const avgBundleCost = parseFloat(document.getElementById('avg-bundle-cost').value);
     const avgPalletsPerOrder = parseFloat(document.getElementById('avg-pallets-per-order').value);
+    const productDistRatio = parseFloat(document.getElementById('product-dist-ratio').value);
 
     // Create product distribution data
     const productDist = {
-        '16OC': PRODUCT_DIST_RATIO,
-        '24OC': 1 - PRODUCT_DIST_RATIO
+        '16OC': productDistRatio,
+        '24OC': 1 - productDistRatio
     };
 
     // Generate production hours variations
@@ -244,7 +245,7 @@ function updateWarehouseAnalysis() {
         title: {
             text: `
             <b>Production Metrics Comparison with Varying Production Hours</b><br>
-            16OC Ratio: ${(PRODUCT_DIST_RATIO * 100).toFixed(0)}%<br>
+            16OC Ratio: ${(productDistRatio * 100).toFixed(0)}%<br>
             Production Speed Factor: ${PRODUCTION_REDUCE_SPEED_FACTOR.toFixed(2)} (plastic change, repair downtime)
             `,
             font: {
