@@ -245,7 +245,7 @@ function updateWarehouseAnalysis() {
             text: `
             <b>Production Metrics Comparison with Varying Production Hours</b><br>
             16OC Ratio: ${(PRODUCT_DIST_RATIO * 100).toFixed(0)}%<br>
-            Production Speed Factor: ${PRODUCTION_REDUCE_SPEED_FACTOR.toFixed(2)}
+            Production Speed Factor: ${PRODUCTION_REDUCE_SPEED_FACTOR.toFixed(2)} (plastic change, repair downtime)
             `,
             font: {
                 size: 16
