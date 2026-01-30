@@ -219,6 +219,9 @@ function updateWarehouseAnalysis() {
     maxY = Math.max(maxY * 1.1, 5);
     minY = Math.max(0, minY * 0.9);
 
+    // Store annotations for revenue labels
+    const revenueAnnotations = [];
+
     REVENUE_TARGETS.forEach((target, i) => {
         const targetPallets = revenueTargetPallets[i];
         const targetOrders = targetPallets / avgPalletsPerOrder;
@@ -228,7 +231,8 @@ function updateWarehouseAnalysis() {
             y: [minY, maxY],
             type: 'scatter',
             mode: 'lines',
-            name: `Revenue: $${target.toLocaleString()}/mo = ${targetPallets.toFixed(1)} pallets/wk (${(targetOrders).toFixed(1)} orders/wk)`,
+            name: `Revenue: $${target.toLocaleString()}/mo`,
+            showlegend: false,
             line: {
                 color: REVENUE_COLORS[i],
                 width: 2,
@@ -237,6 +241,22 @@ function updateWarehouseAnalysis() {
             marker: {
                 size: 0
             }
+        });
+
+        // Add vertical text annotation to the left of the line
+        revenueAnnotations.push({
+            x: targetOrders,
+            y: maxY,
+            xanchor: 'right',
+            yanchor: 'top',
+            text: `$${target.toLocaleString()}/mo = ${targetPallets.toFixed(1)} pallets/wk`,
+            textangle: -90,
+            showarrow: false,
+            font: {
+                size: 13,
+                color: 'black'
+            },
+            xshift: -5
         });
     });
 
@@ -312,7 +332,8 @@ function updateWarehouseAnalysis() {
             r: 60,
             t: 100,
             b: 100
-        }
+        },
+        annotations: revenueAnnotations
     };
 
     // Create the plot
